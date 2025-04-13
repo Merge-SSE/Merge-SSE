@@ -17,7 +17,7 @@ This section provides a high-level overview of the benchmark procedures. The ste
 
 
 # 1. Download the Enron email dataset
-The Eonron email dataset can be downloaded from [here](https://www.cs.cmu.edu/~enron/). You should unzip it into `./emails_raw/`.
+The Enron email dataset can be downloaded from [here](https://www.cs.cmu.edu/~enron/). You should unzip it into `./emails_raw/`.
 
 
 # 2. Parse the emails
@@ -63,7 +63,7 @@ The output will appear in `../benchmarks/` as `S1C_benchmark_{M}_{N}.txt` where 
 
 Repeat the last step above with multi-maps of different size.
 
-Use `../benchmark_plots/plot_S1C_search.py` to plot the search performance of S1C. You may need to change the input file names in the Python script. The setup time (in nanoseconds) can be found on the third line of the benchmark outputs.
+Use `../benchmark_plots/plot_S1C_search.py` to plot the search performance of S1C. Only the experimental result on the largest instance of the experiments will be plotted. The setup time of all experiments will be displayed in the console.
 
 
 
@@ -107,6 +107,8 @@ Run D1C on dense databases by using
 where `N_updates` is the number of update queries to run in the benchmark. It is recommended to set `N_updates` to be relatively small (a few hundred or thousand) to reduce the waiting time of the experiments.
 The output will appear in `../benchmarks/D1C-dense/` as `S1C_benchmark_{M}_{N}_dense.txt` where `M` is the number of labels and `N` is the number of label-value pairs.
 
+Use `../benchmark_plots/plot_D1C_search_dense.py` to plot the search performance of D1C on dense databases. Only the experimental result on the largest instance of the experiments will be plotted. The setup time of all experiments will be displayed in the console.
+
 
 ## Sparse database ($N > pM$)
 Run D1C on sparse databases by using
@@ -115,3 +117,5 @@ Run D1C on sparse databases by using
 ```
 where `N_updates` is the number of update queries to run in the benchmark. It is recommended to set `N_updates` to be relatively small (a few hundred or thousand) to reduce the waiting time of the experiments.
 The output will appear in `../benchmarks/D1C-sparse/` as `S1C_benchmark_{M}_{N}_sparse.txt` where `M` is the number of labels and `N` is the number of label-value pairs.
+
+Use `../benchmark_plots/plot_D1C_search_sparse.py` to plot the search performance of D1C on sparse databases. Only the experimental result on the largest instance of the experiments will be plotted. The setup time of all experiments will be displayed in the console.
