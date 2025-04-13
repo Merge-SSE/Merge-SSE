@@ -99,7 +99,7 @@ g++ *.cpp -o D1C.exe -lcrypto -lssl
 
 Generate sparse and desnse databases using the second half of the procedure from Step 2.
 
-## Dense database ($N \leq pM$)
+## Dense database ($N < pM$)
 Run D1C on dense databases by using
 ```
 ./D1C.exe -f <input_filename> -u <N_updates>
@@ -110,7 +110,7 @@ The output will appear in `../benchmarks/D1C-dense/` as `S1C_benchmark_{M}_{N}_d
 Use `../benchmark_plots/plot_D1C_search_dense.py` to plot the search performance of D1C on dense databases. Only the experimental result on the largest instance of the experiments will be plotted. The setup time of all experiments will be displayed in the console.
 
 
-## Sparse database ($N > pM$)
+## Sparse database ($N \geq pM$)
 Run D1C on sparse databases by using
 ```
 ./D1C.exe -f <input_filename> -u <N_updates> -s
