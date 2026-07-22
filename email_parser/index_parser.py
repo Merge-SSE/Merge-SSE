@@ -46,8 +46,8 @@ def dump_inverted_index(inverted_index, filename_output):
     file_output.close()
 
 
-page_size = 254
-filename_input = '../input/inveted_index_5000.txt'
+page_size = 30
+filename_input = '../input/inverted_index_5000.txt'
 dense_output = '../input/inverted_index_dense.txt'
 sparse_output = '../input/inverted_index_sparse.txt'
 

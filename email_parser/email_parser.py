@@ -145,7 +145,7 @@ def build_inverted_index(path_input, include_keywords, N_files):
 
 
 def dump_inverted_index(inverted_index, path_output):
-    file_output = open(path_output + f'inveted_index_{N_docs}.txt', 'w')
+    file_output = open(path_output + f'inverted_index_{N_docs}.txt', 'w')
 
     for keyword in include_keywords:
         if len(inverted_index[keyword]) > 0:
