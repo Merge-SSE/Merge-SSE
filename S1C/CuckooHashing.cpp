@@ -102,8 +102,8 @@ void CuckooHasing::Build_hash_table(std::unordered_map<size_t, byte_t*> raw_tabl
         if (hash_table_tmp2[ii] != Hash_empty_flag)
             std::memcpy(hash_table+ii*block_len+block_len*hash_table_size, raw_table[hash_table_tmp2[ii]], block_len);
 
-    free(hash_table_tmp1);
-    free(hash_table_tmp2);
+    delete[] hash_table_tmp1;
+    delete[] hash_table_tmp2;
 }
 
 

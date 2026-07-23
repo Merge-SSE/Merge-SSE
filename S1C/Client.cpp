@@ -27,47 +27,62 @@ void Client::KeyGen(){
 
 /*
  * Read input file and parse it as mmap_plaintext
+ * Returns true on success and false on failure.
  */
 void Client::ReadMM(std::string filename) {
     std::ifstream inputFile(filename);
 
     this->N_KDP = 0;
     
-    if (inputFile.is_open()) {
-        std::string line;
-        size_t pos = 0;
-        while (getline(inputFile, line)) {
-            /* Get the keyword */
-            pos = line.find(",");
-            std::string keyword = line.substr(0, pos);
-            line.erase(0, pos + 1);
+    if (!inputFile.is_open()) {
+        std::cerr << "Error opening input file: " << filename << std::endl;
+    }
 
-            /* Get the document identifiers */
-            std::vector<std::string> values;
-            while ((pos = line.find(",")) != std::string::npos) {
-                std::string value = line.substr(0, pos);
-                values.push_back(value);
-                line.erase(0, pos + 1);
-            }
+    std::string line;
+    size_t pos = 0;
+    while (getline(inputFile, line)) {
+        /* Get the keyword */
+        pos = line.find(",");
+        std::string keyword = line.substr(0, pos);
+        line.erase(0, pos + 1);
+
+        /* Get the document identifiers */
+        std::vector<std::string> values;
+        while ((pos = line.find(",")) != std::string::npos) {
             std::string value = line.substr(0, pos);
             values.push_back(value);
-
-            if (keyword.length() > S1C_data_size)
-                continue;
-
-            this->mmap_plaintext[keyword] = values;
-            this->N_KDP += values.size();
+            line.erase(0, pos + 1);
         }
-        inputFile.close();
+        std::string value = line.substr(0, pos);
+        values.push_back(value);
+
+        if (keyword.length() > S1C_data_size)
+            continue;
+
+        this->mmap_plaintext[keyword] = values;
+        this->N_KDP += values.size();
     }
+    inputFile.close();
 
     /* Obtain the number of keywords (M) and the number of keyword document pairs (N) */
     this->N_keywords = this->mmap_plaintext.size();
     this->usable_slots = (page_size - S1C_emm_len_index_len - IV_len) / S1C_data_size;
 
-    /* Compute the number of partial emms and bincap */
-    this->bincap = (size_t) (bincap_const * logLogLambda * this->usable_slots * std::log(this->N_KDP / this->usable_slots));
-    this->N_bins = (size_t) std::ceil((double) this->N_KDP / ( logLogLambda * this->usable_slots * std::log(this->N_KDP / this->usable_slots)));
+    if (this->N_KDP == 0) {
+        std::cerr << "Error: no keyword-document pairs were loaded. Setup cannot continue." << std::endl;
+        this->bincap = 0;
+        this->N_bins = 0;
+        inputFile.close();
+    }
+
+    double page_ratio = static_cast<double>(this->N_KDP) / this->usable_slots;
+    if (page_ratio <= 1.0) {
+        this->bincap = this->usable_slots;
+        this->N_bins = 1;
+    } else {
+        this->bincap = (size_t) (bincap_const * logLogLambda * this->usable_slots * std::log(page_ratio));
+        this->N_bins = (size_t) std::ceil((double) this->N_KDP / (logLogLambda * this->usable_slots * std::log(page_ratio)));
+    }
 
     /* Allocate emm_partial_raw */
     this->emm_partial_raw = new std::unordered_map<size_t, byte_t*>[this->N_bins];
@@ -80,6 +95,7 @@ void Client::ReadMM(std::string filename) {
     std::cout << "Bincap partial (raw): " << this->bincap << std::endl;
     std::cout << "N_bins partial: " << this->N_bins << std::endl;
     std::cout << "---------------------" << std::endl;
+    inputFile.close();
 }
 
 /* 
@@ -224,7 +240,7 @@ void Client::SetupFinalize() {
     std::cout << "emm_len built." << std::endl; 
 
     // Build the Cuckoo hash table for emm_full
-    size_t N_page_max = std::ceil(this->N_KDP / this->usable_slots);
+    size_t N_page_max = std::ceil((double) this->N_KDP / this->usable_slots);
     size_t emm_full_size = std::ceil((1 + epsilon) *  N_page_max);
     size_t emm_full_payload_len = page_size;
     this->emm_full = (byte_t *) malloc(2 * emm_full_size * emm_full_payload_len * sizeof(byte_t));
@@ -262,7 +278,7 @@ void Client::SetupFinalizeFullPages() {
     std::cout << "emm_len built." << std::endl; 
 
     // Build the Cuckoo hash table for emm_full
-    size_t N_page_max = std::ceil(this->N_KDP / this->usable_slots);
+    size_t N_page_max = std::ceil((double) this->N_KDP / this->usable_slots);
     size_t emm_full_size = std::ceil((1 + epsilon) *  N_page_max);
     size_t emm_full_payload_len = page_size;
     this->emm_full = (byte_t *) malloc(2 * emm_full_size * emm_full_payload_len * sizeof(byte_t));
@@ -308,7 +324,7 @@ void Client::SearchTokenGen(std::string keyword, byte_t *emm_len_index, byte_t *
     Hash::HMAC_SHA256(hash_message, keyword.length()+1, this->PRF_key, digest);
     std::memcpy(token, digest, digest_len);
 
-    free(hash_message);
+    delete[] hash_message;
 }
 
 /*
