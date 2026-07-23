@@ -63,7 +63,7 @@ int BenchmarkFullPages(std::string filename, std::string folder_emm, bool in_mem
 
     client.KeyGen();
     client.Setup();
-    client.SetupFinalize();
+    client.SetupFinalizeFullPages();
 
     /* Server setup */
     Server server(folder_emm, in_memory);
@@ -73,14 +73,20 @@ int BenchmarkFullPages(std::string filename, std::string folder_emm, bool in_mem
     size_t emm_len_size                     = std::ceil((1 + epsilon) * client.N_KDP);
     unsigned int emm_full_payload_len       = page_size; 
     size_t page_usable_slots                = (page_size - S1C_emm_full_index_len - 16) / S1C_data_size;
-    size_t N_page_max                       = std::ceil(client.N_KDP / page_usable_slots);
+    size_t N_page_max                       = std::ceil((double) client.N_KDP / page_usable_slots);
     size_t emm_full_size                    = std::ceil((1 + epsilon) *  N_page_max);
     unsigned int emm_partial_payload_len    = S1C_data_size + IV_len + S1C_emm_partial_index_len;
 
     server.Store_emm_info(emm_len_payload_len, emm_len_size, emm_full_payload_len, emm_full_size,
                             emm_partial_payload_len, client.N_bins, std::ceil((1 + epsilon) * client.bincap));
+                            
+    std::cout << "emm_len client: " << 2 *emm_len_payload_len * emm_len_size<< " bytes" << std::endl;
     server.Store_emm_len(client.emm_len);
+
+    std::cout << "emm_full client: " << 2 *emm_full_payload_len * emm_full_size<< " bytes" << std::endl;
     server.Store_emm_full(client.emm_full);
+
+    std::cout << "emm_partial client: " << (size_t)(2 *client.N_bins*emm_partial_payload_len*std::ceil((1 + epsilon) * client.bincap))<< " bytes" << std::endl;
     server.Store_emm_partial(client.emm_partial);
 
     server.Store_seeds(client.seed_emm_len, client.seed_emm_full, client.seed_emm_partial);
@@ -176,14 +182,20 @@ int BenchmarkQueries(std::string filename, std::string folder_emm, bool in_memor
     size_t emm_len_size                     = std::ceil((1 + epsilon) * client.N_KDP);
     unsigned int emm_full_payload_len       = page_size; 
     size_t page_usable_slots                = (page_size - S1C_emm_full_index_len - 16) / S1C_data_size;
-    size_t N_page_max                       = std::ceil(client.N_KDP / page_usable_slots);
+    size_t N_page_max                       = std::ceil((double) client.N_KDP / page_usable_slots);
     size_t emm_full_size                    = std::ceil((1 + epsilon) *  N_page_max);
     unsigned int emm_partial_payload_len    = S1C_data_size + IV_len + S1C_emm_partial_index_len;
 
     server.Store_emm_info(emm_len_payload_len, emm_len_size, emm_full_payload_len, emm_full_size,
                             emm_partial_payload_len, client.N_bins, std::ceil((1 + epsilon) * client.bincap));
+
+    std::cout << "emm_len client: " << 2 *emm_len_payload_len * emm_len_size<< std::endl;
     server.Store_emm_len(client.emm_len);
+
+    std::cout << "emm_full client: " << 2 *emm_full_payload_len * emm_full_size<< std::endl;
     server.Store_emm_full(client.emm_full);
+
+    std::cout << "emm_partial client: " << 2 *client.N_bins*emm_partial_payload_len*std::ceil((1 + epsilon) * client.bincap)<< std::endl;
     server.Store_emm_partial(client.emm_partial);
 
     server.Store_seeds(client.seed_emm_len, client.seed_emm_full, client.seed_emm_partial);

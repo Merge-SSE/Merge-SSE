@@ -29,7 +29,21 @@ void Server::Store_emm_len(byte_t *emm_len_client) {
         std::ofstream outputFile(this->folder_emm + "emm_len.bin", std::ofstream::binary | std::ofstream::out);
         if (!outputFile.is_open())
             return;
-        outputFile.write(reinterpret_cast<const char*>(emm_len_client), 2*this->emm_len_payload_len*this->emm_len_size);
+
+        size_t total_bytes = 2 * (size_t)this->emm_len_payload_len * this->emm_len_size;
+        std::cout << "emm_len server: " << total_bytes << " bytes" << std::endl;
+        const char *write_ptr = reinterpret_cast<const char*>(emm_len_client);
+        size_t written = 0;
+        while (written < total_bytes) {
+            size_t chunk = std::min(total_bytes - written, (size_t)(1ULL << 26));
+            outputFile.write(write_ptr + written, static_cast<std::streamsize>(chunk));
+            if (!outputFile) {
+                std::cerr << "emm_len write failed after " << written << " bytes" << std::endl;
+                break;
+            }
+            written += chunk;
+        }
+        std::cout << "emm_len dumped " << written << " bytes" << std::endl;
         outputFile.close();
     }
 }
@@ -44,7 +58,21 @@ void Server::Store_emm_full(byte_t *emm_full_client) {
         std::ofstream outputFile(this->folder_emm + "emm_full.bin", std::ofstream::binary | std::ofstream::out);
         if (!outputFile.is_open())
             return;
-        outputFile.write(reinterpret_cast<const char*>(emm_full_client), 2*this->emm_full_payload_len*this->emm_full_size);
+        
+        size_t total_bytes = 2 * (size_t)this->emm_full_payload_len * this->emm_full_size;
+        std::cout << "emm_full server: " << total_bytes << " bytes" << std::endl;
+        const char *write_ptr = reinterpret_cast<const char*>(emm_full_client);
+        size_t written = 0;
+        while (written < total_bytes) {
+            size_t chunk = std::min(total_bytes - written, (size_t)(1ULL << 26));
+            outputFile.write(write_ptr + written, static_cast<std::streamsize>(chunk));
+            if (!outputFile) {
+                std::cerr << "emm_full write failed after " << written << " bytes" << std::endl;
+                break;
+            }
+            written += chunk;
+        }
+        std::cout << "emm_full dumped " << written << " bytes" << std::endl;
         outputFile.close();
     }
 }
@@ -59,7 +87,20 @@ void Server::Store_emm_partial(byte_t *emm_partial_client) {
         std::ofstream outputFile(this->folder_emm + "emm_partial.bin", std::ofstream::binary | std::ofstream::out);
         if (!outputFile.is_open())
             return;
-        outputFile.write(reinterpret_cast<const char*>(emm_partial_client), 2*this->N_bins*this->emm_partial_payload_len*this->emm_partial_size);
+        size_t total_bytes = 2 * (size_t)this->N_bins * this->emm_partial_payload_len * this->emm_partial_size;
+        std::cout << "emm_partial server: " << total_bytes << " bytes" << std::endl;
+        const char *write_ptr = reinterpret_cast<const char*>(emm_partial_client);
+        size_t written = 0;
+        while (written < total_bytes) {
+            size_t chunk = std::min(total_bytes - written, (size_t)(1ULL << 26));
+            outputFile.write(write_ptr + written, static_cast<std::streamsize>(chunk));
+            if (!outputFile) {
+                std::cerr << "emm_partial write failed after " << written << " bytes" << std::endl;
+                break;
+            }
+            written += chunk;
+        }
+        std::cout << "emm_partial dumped " << written << " bytes" << std::endl;
         outputFile.close();
     }
 }

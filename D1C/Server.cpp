@@ -36,7 +36,24 @@ void Server::StoreEMM(byte_t *emm, size_t *seed_emm) {
         std::ofstream outputFile(this->filename_emm, std::ofstream::binary | std::ofstream::out);
         if (!outputFile.is_open())
             return;
-        outputFile.write(reinterpret_cast<const char*>(emm), 2*this->N_bins*this->emm_payload_len*this->emm_bin_size);
+
+        const size_t bytes_to_write = 2 * this->N_bins * this->emm_payload_len * this->emm_bin_size;
+        const size_t chunk_size = 16 * 1024 * 1024;
+        size_t offset = 0;
+
+        while (offset < bytes_to_write) {
+            size_t current_chunk = chunk_size;
+            if (current_chunk > bytes_to_write - offset) {
+                current_chunk = bytes_to_write - offset;
+            }
+
+            outputFile.write(reinterpret_cast<const char*>(emm + offset), current_chunk);
+            if (!outputFile)
+                break;
+
+            offset += current_chunk;
+        }
+
         outputFile.close();
     }
 

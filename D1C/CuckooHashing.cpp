@@ -114,6 +114,10 @@ void CuckooHasing::Build_hash_table_enc_and_fill(std::unordered_map<size_t, byte
             std::memcpy(hash_table+ii*block_len+block_len*hash_table_size, ciphertext, block_len);
         }
     }
+
+    delete[] hash_table_tmp1;
+    delete[] hash_table_tmp2;
+    free(plaintext);
 }
 
 void CuckooHasing::Lookup(byte_t *hash_table, unsigned int block_len, size_t hash_table_size,
