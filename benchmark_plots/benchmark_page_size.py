@@ -32,6 +32,8 @@ def extract_throughput(filename, grouping=20, skip_row=0):
 
 
 def plot_throughputs(S1C_throughputs, D1C_throughputs):
+    plt.figure(figsize=(10, 6))
+
     xs = [ii for ii in range(len(S1C_throughputs))]
     xlabels = []
     ys = []
@@ -46,14 +48,17 @@ def plot_throughputs(S1C_throughputs, D1C_throughputs):
     plt.scatter(xs, ys, marker='o')
     plt.scatter(xs, zs, marker='x')
 
-    plt.xticks(ticks=xs, labels=xlabels)
+    plt.xticks(ticks=xs, labels=xlabels, rotation=30, ha='right')
     plt.xlabel('Page size (bytes and #values)')
     plt.ylabel('Throughput (#values retrieved per second)')
 
     plt.legend(['S1C', 'D1C'])
     #plt.title('Page size vs throughput')
-    
-    plt.show()
+
+    plt.tight_layout()
+    os.makedirs('../benchmarks/plots/', exist_ok=True)
+    plt.savefig('../benchmarks/plots/exp-page-size.pdf')
+    print('Saved plot to ../benchmarks/plots/exp-page-size.pdf')
 
 
 S1C_throughputs = {}

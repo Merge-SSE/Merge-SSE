@@ -2,6 +2,7 @@
 
 #include <cmath>
 #include <chrono>
+#include <filesystem>
 #include <fstream>
 #include <cstring>
 #include <sstream>
@@ -41,6 +42,12 @@ int main(int argc, char** argv) {
     bool benchmark_full_pages_only = false;
     s1c_args_parser.add_flag("--fp,--fullpage", benchmark_full_pages_only, "Benchmark full pages only");
 
+    s1c_args_parser.add_option("-p,--page-size", page_size, "Page size in bytes");
+
+    s1c_args_parser.add_option("-d,--delta", delta, "Oversampling factor delta used for cuckoo hash table sizing");
+
+    s1c_args_parser.add_flag("-v,--verbose", verbose_setup, "Print detailed setup/cuckoo-hashing progress (adds overhead; use for benchmarking/debugging)");
+
     try {
         s1c_args_parser.parse(argc, argv);
     } catch (const CLI::ParseError &e) {
@@ -79,14 +86,16 @@ int BenchmarkFullPages(std::string filename, std::string folder_emm, bool in_mem
     
     /* Initialize the server for full pages */
     Server server_dummy1C(folder_emm+"full.bin", in_memory);
-    size_t bincap_full = std::ceil((1+epsilon) * client.bincap_full);
+    size_t bincap_full = std::ceil((1+delta) * client.bincap_full);
     server_dummy1C.StoreEMMInfo(page_size, client.N_bins_full, bincap_full);
+    std::cout << "emm_full client: " << (size_t)(2 * page_size * client.N_bins_full * bincap_full) << " bytes" << std::endl;
 
     /* Initialize the server for paritial pages */
     Server server_partial(folder_emm+"partial.bin", in_memory);
     size_t emm_partial_payload_len = 2*data_size + emm_index_len + IV_len;
-    size_t bincap_partial = std::ceil((1+epsilon) * client.bincap_partial);
+    size_t bincap_partial = std::ceil((1+delta) * client.bincap_partial);
     server_partial.StoreEMMInfo(emm_partial_payload_len, client.N_bins_partial, bincap_partial);
+    std::cout << "emm_partial client: " << (size_t)(2 * emm_partial_payload_len * client.N_bins_partial * bincap_partial) << " bytes" << std::endl;
 
     client.KeyGen();
     //client.Setup();
@@ -122,6 +131,7 @@ int BenchmarkFullPages(std::string filename, std::string folder_emm, bool in_mem
 
     std::stringstream filename_stream;
     filename_stream << "../benchmarks/D1C-opt-p/D1C_benchmark_" << N_labels << "_" << N_KDP << "_" << page_size << ".txt";
+    std::filesystem::create_directories(std::filesystem::path(filename_stream.str()).parent_path());
     benchmark_file.open(filename_stream.str());
     if (benchmark_file.is_open()) {
         benchmark_file << N_labels << std::endl;
@@ -187,14 +197,16 @@ int BenchmarkQueries(std::string filename,std::string folder_emm, bool in_memory
     
     /* Initialize the server for full pages */
     Server server_dummy1C(folder_emm+"full.bin", in_memory);
-    size_t bincap_full = std::ceil((1+epsilon) * client.bincap_full);
+    size_t bincap_full = std::ceil((1+delta) * client.bincap_full);
     server_dummy1C.StoreEMMInfo(page_size, client.N_bins_full, bincap_full);
+    std::cout << "emm_full client: " << (size_t)(2 * page_size * client.N_bins_full * bincap_full) << " bytes" << std::endl;
 
     /* Initialize the server for paritial pages */
     Server server_partial(folder_emm+"partial.bin", in_memory);
     size_t emm_partial_payload_len = 2*data_size + emm_index_len + IV_len;
-    size_t bincap_partial = std::ceil((1+epsilon) * client.bincap_partial);
+    size_t bincap_partial = std::ceil((1+delta) * client.bincap_partial);
     server_partial.StoreEMMInfo(emm_partial_payload_len, client.N_bins_partial, bincap_partial);
+    std::cout << "emm_partial client: " << (size_t)(2 * emm_partial_payload_len * client.N_bins_partial * bincap_partial) << " bytes" << std::endl;
 
     client.KeyGen();
     //client.Setup();
@@ -213,9 +225,9 @@ int BenchmarkQueries(std::string filename,std::string folder_emm, bool in_memory
     /* Insert keyword document pairs */
     size_t counter = 0;
     for (auto kvp: multimap) {
-        counter += 1;
         if (counter >= N_rows_skip)
             break;
+        counter += 1;
         std::string keyword = kvp.first;
         //std::cout << "Inserting keyword: " << keyword << " (" << kvp.second.size() << ")" << std::endl;
         for (byte_t * value: kvp.second) {
@@ -246,15 +258,16 @@ int BenchmarkQueries(std::string filename,std::string folder_emm, bool in_memory
     std::ofstream benchmark_file;
 
     std::stringstream filename_stream;
-    
+
     if (dbType == SPARSEDB) {
-        filename_stream << "../benchmarks/D1C-sparse/D1C_benchmark_" << N_labels << "_" << N_KDP;
-        filename_stream << "_sparse.txt";
+        filename_stream << (in_memory ? "../benchmarks/mem-results/" : "../benchmarks/D1C-sparse/")
+                         << "D1C_benchmark_" << N_labels << "_" << N_KDP << "_sparse.txt";
     }
     else {
-        filename_stream << "../benchmarks/D1C-dense/D1C_benchmark_" << N_labels << "_" << N_KDP;
-        filename_stream << "_dense.txt";
+        filename_stream << (in_memory ? "../benchmarks/mem-results/" : "../benchmarks/D1C-dense/")
+                         << "D1C_benchmark_" << N_labels << "_" << N_KDP << "_dense.txt";
     }
+    std::filesystem::create_directories(std::filesystem::path(filename_stream.str()).parent_path());
     benchmark_file.open(filename_stream.str());
     if (benchmark_file.is_open()) {
         benchmark_file << N_labels << std::endl;

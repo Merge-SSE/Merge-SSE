@@ -225,40 +225,46 @@ void Client::Setup() {
 /*
  * Finalise the setup of S1C by dumping emm_len_raw, emm_full_raw and emm_partial_raw into bloom filters
  * Outputs:
- *   1. emm_len: byte array of size 2 * (1 + epsilon) * N_KDP * (S1C_emm_len_XOR_key_len + S1C_emm_len_index_len)
- *   2. emm_raw: byte array of size 2 * (1 + epsilon) * ceil(N_KDP / page_size) * page_size
- *   3. emm_partial: byte array of size N_bins * 2 * (1 + epsilon) * bincap * (S1C_data_size + S1C_emm_partial_index_len)
+ *   1. emm_len: byte array of size 2 * (1 + delta) * N_KDP * (S1C_emm_len_XOR_key_len + S1C_emm_len_index_len)
+ *   2. emm_raw: byte array of size 2 * (1 + delta) * ceil(N_KDP / page_size) * page_size
+ *   3. emm_partial: byte array of size N_bins * 2 * (1 + delta) * bincap * (S1C_data_size + S1C_emm_partial_index_len)
  */
 void Client::SetupFinalize() {
     // Build the Cuckoo hash table for emm_len
-    size_t emm_len_size = std::ceil((1 + epsilon) * this->N_KDP);
+    size_t emm_len_size = std::ceil((1 + delta) * this->N_KDP);
     size_t emm_len_payload_len = sizeof(size_t) + S1C_emm_partial_index_len;
     this->emm_len = (byte_t *) malloc(2 * emm_len_size * emm_len_payload_len * sizeof(byte_t));
     randombytes(this->emm_len, 2 * emm_len_size * emm_len_payload_len);
 
+    if (verbose_setup)
+        std::cout << "Building emm_len (size=" << emm_len_size << ")..." << std::endl;
     CuckooHasing::Build_hash_table(this->emm_len_raw, emm_len_payload_len, emm_len_size, this->emm_len, seed_emm_len);
-    std::cout << "emm_len built." << std::endl; 
+    std::cout << "emm_len built." << std::endl;
 
     // Build the Cuckoo hash table for emm_full
     size_t N_page_max = std::ceil((double) this->N_KDP / this->usable_slots);
-    size_t emm_full_size = std::ceil((1 + epsilon) *  N_page_max);
+    size_t emm_full_size = std::ceil((1 + delta) *  N_page_max);
     size_t emm_full_payload_len = page_size;
     this->emm_full = (byte_t *) malloc(2 * emm_full_size * emm_full_payload_len * sizeof(byte_t));
     randombytes(this->emm_full, 2 * emm_full_size * emm_full_payload_len);
 
+    if (verbose_setup)
+        std::cout << "Building emm_full (size=" << emm_full_size << ", N_page_max=" << N_page_max
+                   << ", usable_slots=" << this->usable_slots << ")..." << std::endl;
     CuckooHasing::Build_hash_table(this->emm_full_raw, page_size, emm_full_size, this->emm_full, seed_emm_full);
-    std::cout << "emm_full built." << std::endl; 
+    std::cout << "emm_full built." << std::endl;
 
     // Build the Cuckoo hash table for emm_partial
-    size_t emm_partial_size = std::ceil((1 + epsilon) * this->bincap);
+    size_t emm_partial_size = std::ceil((1 + delta) * this->bincap);
     size_t emm_partial_payload_len = IV_len + S1C_data_size + S1C_emm_partial_index_len;
     this->emm_partial = (byte_t *) malloc(2 * this->N_bins * emm_partial_size * emm_partial_payload_len * sizeof(byte_t));
     randombytes(this->emm_partial, 2 * this->N_bins * emm_partial_size * emm_partial_payload_len);
 
-
+    if (verbose_setup)
+        std::cout << "Building emm_partial (N_bins=" << this->N_bins << ", size per bin=" << emm_partial_size << ")..." << std::endl;
     for (size_t bin_idx = 0; bin_idx < this->N_bins; bin_idx++) {
         size_t offset = 2 * bin_idx * emm_partial_size * emm_partial_payload_len;
-        CuckooHasing::Build_hash_table(this->emm_partial_raw[bin_idx], emm_partial_payload_len, 
+        CuckooHasing::Build_hash_table(this->emm_partial_raw[bin_idx], emm_partial_payload_len,
             emm_partial_size, this->emm_partial+offset, seed_emm_partial+2*bin_idx);
 
             if ((bin_idx+1) % std::max((size_t) 1, (this->N_bins / 10)) == 0)
@@ -269,26 +275,31 @@ void Client::SetupFinalize() {
 
 void Client::SetupFinalizeFullPages() {
     // Build the Cuckoo hash table for emm_len
-    size_t emm_len_size = std::ceil((1 + epsilon) * this->N_KDP);
+    size_t emm_len_size = std::ceil((1 + delta) * this->N_KDP);
     size_t emm_len_payload_len = sizeof(size_t) + S1C_emm_partial_index_len;
     this->emm_len = (byte_t *) malloc(2 * emm_len_size * emm_len_payload_len * sizeof(byte_t));
     randombytes(this->emm_len, 2 * emm_len_size * emm_len_payload_len);
 
+    if (verbose_setup)
+        std::cout << "Building emm_len (size=" << emm_len_size << ")..." << std::endl;
     CuckooHasing::Build_hash_table(this->emm_len_raw, emm_len_payload_len, emm_len_size, this->emm_len, seed_emm_len);
-    std::cout << "emm_len built." << std::endl; 
+    std::cout << "emm_len built." << std::endl;
 
     // Build the Cuckoo hash table for emm_full
     size_t N_page_max = std::ceil((double) this->N_KDP / this->usable_slots);
-    size_t emm_full_size = std::ceil((1 + epsilon) *  N_page_max);
+    size_t emm_full_size = std::ceil((1 + delta) *  N_page_max);
     size_t emm_full_payload_len = page_size;
     this->emm_full = (byte_t *) malloc(2 * emm_full_size * emm_full_payload_len * sizeof(byte_t));
     randombytes(this->emm_full, 2 * emm_full_size * emm_full_payload_len);
 
+    if (verbose_setup)
+        std::cout << "Building emm_full (size=" << emm_full_size << ", N_page_max=" << N_page_max
+                   << ", usable_slots=" << this->usable_slots << ")..." << std::endl;
     CuckooHasing::Build_hash_table(this->emm_full_raw, page_size, emm_full_size, this->emm_full, seed_emm_full);
-    std::cout << "emm_full built." << std::endl; 
+    std::cout << "emm_full built." << std::endl;
 
     // Build the Cuckoo hash table for emm_partial
-    size_t emm_partial_size = std::ceil((1 + epsilon) * this->bincap);
+    size_t emm_partial_size = std::ceil((1 + delta) * this->bincap);
     size_t emm_partial_payload_len = IV_len + S1C_data_size + S1C_emm_partial_index_len;
     this->emm_partial = (byte_t *) malloc(2 * this->N_bins * emm_partial_size * emm_partial_payload_len * sizeof(byte_t));
     randombytes(this->emm_partial, 2 * this->N_bins * emm_partial_size * emm_partial_payload_len);

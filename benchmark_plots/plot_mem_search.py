@@ -1,3 +1,4 @@
+import argparse
 import matplotlib.pyplot as plt
 import numpy as np
 import os
@@ -47,6 +48,7 @@ def extract_query_times(filename, grouping=5):
 
 
 def plot_lines(benchmarks, max_vol=100000):
+    all_ys = []
     for label in sorted(benchmarks.keys()):
         data = benchmarks[label]
         zs = sorted(list(data.keys()))
@@ -62,56 +64,55 @@ def plot_lines(benchmarks, max_vol=100000):
             ys += [np.mean(values)]
 
         print(max(xs), max(ys))
-        
-        ax1.plot(xs, ys, label=label)
-        ax2.plot(xs, ys, label=label)
+
+        plt.plot(xs, ys, label=label)
+        all_ys += ys
+
+    return all_ys
 
 
+parser = argparse.ArgumentParser(description="Plot search performance of the in-memory benchmarks.")
+parser.add_argument('-p', '--page-size', type=int, default=None, dest='page_size',
+                     help="If given, draws dashed gridlines at each usable_slots boundary "
+                          "(usable_slots = (page_size - 32) / 16, the query-response-volume period "
+                          "at which a query gains another full-page read; see plot_S1C_zigzag.py)")
+parser.add_argument('--max-vol', type=int, default=300, help="Max query response volume to plot (default: 300)")
+args = parser.parse_args()
 
-page_size = 30
+# D1C labels are annotated dense/sparse from the filename suffix (D1C.exe always writes
+# "..._dense.txt"/"..._sparse.txt" regardless of in-memory mode).
 benchmarks = {}
 for filename in os.listdir('../benchmarks/mem-results/'):
     parts = filename.split('_')
     label = parts[0]
     if parts[0] == 'D1C':
-        M = int(parts[2])
-        N = int(parts[3])
-        if N < page_size * M:
-            label += ' (N < pM)'
-        else:
-            label += ' (N >= pM)'
+        label += ' (dense)' if filename.endswith('_dense.txt') else ' (sparse)'
     benchmarks[label] = extract_query_times('../benchmarks/mem-results/' + filename)
 
 
+plt.figure(figsize=(10, 6))
+all_ys = plot_lines(benchmarks, max_vol=args.max_vol)
 
-fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True)
-fig.subplots_adjust(hspace=0.15)
+if all_ys:
+    y_min, y_max = min(all_ys), max(all_ys)
+    padding = max((y_max - y_min) * 0.1, 0.05)
+    plt.ylim(max(0, y_min - padding), y_max + padding)
 
-ax1.set_ylim(2.3, 2.8)
-ax2.set_ylim(0, 0.5)
+if args.page_size:
+    usable_slots = (args.page_size - 32) / 16
+    ii = 1
+    while ii * usable_slots <= args.max_vol:
+        plt.axvline(x=ii * usable_slots, linestyle='dashed', color='gray', linewidth=0.7)
+        ii += 1
 
-# hide the spines between ax and ax2
-ax1.spines.bottom.set_visible(False)
-ax2.spines.top.set_visible(False)
-ax1.xaxis.tick_top()
-ax1.tick_params(labeltop=False)  # don't put tick labels at the top
-ax2.xaxis.tick_bottom()
-    
-plot_lines(benchmarks,max_vol=300)
-
-for ii in range(1, 300//page_size+1):
-    ax1.axvline(x=ii*page_size, linestyle='dashed')
-    ax2.axvline(x=ii*page_size, linestyle='dashed')
-
-
-
-#plt.yscale('log')
 plt.legend()
 plt.xlabel('Query Response Volume', fontsize=12)
-fig.supylabel('Query Response Time (ms)', fontsize=12)
+plt.ylabel('Query Response Time (ms)', fontsize=12)
 
-ax1.tick_params(labelsize=11)
-ax2.tick_params(labelsize=11)
+plt.xticks(fontsize=11)
 plt.yticks(fontsize=11)
 
-plt.show()
+plt.tight_layout()
+os.makedirs('../benchmarks/plots/', exist_ok=True)
+plt.savefig('../benchmarks/plots/exp-mem.pdf')
+print('Saved plot to ../benchmarks/plots/exp-mem.pdf')

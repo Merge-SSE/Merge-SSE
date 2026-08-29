@@ -1,0 +1,82 @@
+#include "RAMStore.hpp"
+#include <iostream>
+#include "ORAM.hpp"
+#include "Utilities.h"
+#include <bits/stdc++.h>
+
+using namespace std;
+
+string RAMStore::randomString(int ch) {
+    char alpha[26] = {'a', 'b', 'c', 'd', 'e', 'f', 'g',
+        'h', 'i', 'j', 'k', 'l', 'm', 'n',
+        'o', 'p', 'q', 'r', 's', 't', 'u',
+        'v', 'w', 'x', 'y', 'z'};
+    string result = "";
+    for (int i = 0; i < ch; i++)
+        result = result + alpha[rand() % 26];
+
+    return result;
+}
+
+RAMStore::RAMStore(size_t count, size_t size)
+: store(count), size(size) {
+    filename = Utilities::rootAddress + "OMAP-" + randomString(15) + ".dat";
+
+    Utilities::ensureFileExists(filename, true);
+
+    //    fstream file(filename.c_str(), std::ofstream::out);
+    //    if (file.fail()) {
+    //        cerr << "Error: " << strerror(errno);
+    //    }
+    //    vector<uint8_t> nullKey;
+    //    for (int i = 0; i < size; i++) {
+    //        nullKey.push_back(0);
+    //    }
+    //
+    //    for (long j = 0; j < count; j++) {
+    //        file.write((char*) nullKey.data(), size);
+    //    }
+    //    file.close();
+    filehandle = fopen(filename.c_str(), "rb+");
+}
+
+RAMStore::~RAMStore() {
+    fclose(filehandle);
+}
+
+block RAMStore::Read(int pos) {
+    if (useHDD) {
+        if (Utilities::DROP_CACHE && !setup) {
+            Utilities::startTimer(113);
+            if (Utilities::HDD_CACHE)system(Utilities::HDD_DROP_CACHE_COMMAND.c_str());
+            if (Utilities::SSD_CACHE)system(Utilities::SSD_DROP_CACHE_COMMAND.c_str());
+            if (Utilities::KERNEL_CACHE)system(Utilities::KERNEL_DROP_CACHE_COMMAND.c_str());
+            auto t = Utilities::stopTimer(113);
+            cacheTime += t;
+        }
+        fseek(filehandle, pos*size, SEEK_SET);
+        block chainHead(size);
+        fread(chainHead.data(), size, 1, filehandle);
+
+
+        return chainHead;
+    } else {
+        return store[pos];
+    }
+}
+
+void RAMStore::Write(int pos, block b) {
+    if (useHDD) {
+        if (Utilities::DROP_CACHE && !setup) {
+            Utilities::startTimer(113);
+            if (Utilities::HDD_CACHE)system(Utilities::HDD_DROP_CACHE_COMMAND.c_str()); if (Utilities::SSD_CACHE)system(Utilities::SSD_DROP_CACHE_COMMAND.c_str());
+            if (Utilities::KERNEL_CACHE)system(Utilities::KERNEL_DROP_CACHE_COMMAND.c_str());
+            auto t = Utilities::stopTimer(113);
+            cacheTime += t;
+        }
+        fseek(filehandle, pos*size, SEEK_SET);
+        fwrite((char*) b.data(), size, 1, filehandle);
+    } else {
+        store[pos] = b;
+    }
+}

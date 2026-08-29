@@ -79,9 +79,9 @@ class Client
         /*
          * Finalise the setup of S1C by dumping emm_len_raw, emm_full_raw and emm_partial_raw into bloom filters
          * Outputs:
-         *   1. emm_len: byte array of size 2 * (1 + epsilon) * N_KDP * (emm_len_XOR_key_len + emm_len_index_len)
-         *   2. emm_raw: byte array of size 2 * (1 + epsilon) * ceil(N_KDP / page_size) * page_size
-         *   3. emm_partial: byte array of size N_bins * 2 * (1 + epsilon) * bincap * (data_size + emm_partial_index_len)
+         *   1. emm_len: byte array of size 2 * (1 + delta) * N_KDP * (emm_len_XOR_key_len + emm_len_index_len)
+         *   2. emm_raw: byte array of size 2 * (1 + delta) * ceil(N_KDP / page_size) * page_size
+         *   3. emm_partial: byte array of size N_bins * 2 * (1 + delta) * bincap * (data_size + emm_partial_index_len)
          */
         void SetupFinalize();
 

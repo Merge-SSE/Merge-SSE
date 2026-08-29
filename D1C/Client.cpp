@@ -74,7 +74,7 @@ void Client::KeyGen(){
 void Client::Setup() {
     /* Initialise emm_full */
     size_t emm_full_payload_len = page_size;
-    size_t emm_full_bin_size = std::ceil((1+epsilon) * this->bincap_full);
+    size_t emm_full_bin_size = std::ceil((1+delta) * this->bincap_full);
     this->emm_full = (byte_t*) malloc(2 * this->N_bins_full * emm_full_bin_size * emm_full_payload_len * sizeof(byte_t));
 
     std::unordered_map<size_t, byte_t*> raw_table;
@@ -88,7 +88,7 @@ void Client::Setup() {
 
     /* Initialise emm_partial */
     size_t emm_partial_payload_len = 2*data_size + emm_index_len + IV_len;
-    size_t emm_partial_bin_size = std::ceil((1+epsilon) * this->bincap_partial);
+    size_t emm_partial_bin_size = std::ceil((1+delta) * this->bincap_partial);
     this->emm_partial = (byte_t*) malloc(2 * this->N_bins_partial * emm_partial_bin_size * emm_partial_payload_len * sizeof(byte_t));
     for (size_t bin_idx = 0; bin_idx < this->N_bins_partial; bin_idx++) {
         //std::cout << "Partial bin: " << bin_idx << std::endl;
@@ -186,7 +186,7 @@ void Client::Setup_with_MM(std::unordered_map<std::string, std::vector<byte_t *>
 
     /* Encrypt the full pages */
     size_t emm_full_payload_len = page_size;
-    size_t emm_full_bin_size = std::ceil((1+epsilon) * this->bincap_full);
+    size_t emm_full_bin_size = std::ceil((1+delta) * this->bincap_full);
     this->emm_full = (byte_t*) malloc(2 * this->N_bins_full * emm_full_bin_size * emm_full_payload_len * sizeof(byte_t));
 
     for (size_t bin_idx = 0; bin_idx < this->N_bins_full; bin_idx++) {
@@ -203,7 +203,7 @@ void Client::Setup_with_MM(std::unordered_map<std::string, std::vector<byte_t *>
 
     /* Initialise emm_partial */
     size_t emm_partial_payload_len = 2*data_size + emm_index_len + IV_len;
-    size_t emm_partial_bin_size = std::ceil((1+epsilon) * this->bincap_partial);
+    size_t emm_partial_bin_size = std::ceil((1+delta) * this->bincap_partial);
     this->emm_partial = (byte_t*) malloc(2 * this->N_bins_partial * emm_partial_bin_size * emm_partial_payload_len * sizeof(byte_t));
     for (size_t bin_idx = 0; bin_idx < this->N_bins_partial; bin_idx++) {
         //std::cout << "Partial bin: " << bin_idx << std::endl;
@@ -273,7 +273,7 @@ void Client::Setup_with_MM_fullpages(std::unordered_map<std::string, std::vector
 
     /* Encrypt the full pages */
     size_t emm_full_payload_len = page_size;
-    size_t emm_full_bin_size = std::ceil((1+epsilon) * this->bincap_full);
+    size_t emm_full_bin_size = std::ceil((1+delta) * this->bincap_full);
     this->emm_full = (byte_t*) malloc(2 * this->N_bins_full * emm_full_bin_size * emm_full_payload_len * sizeof(byte_t));
 
     for (size_t bin_idx = 0; bin_idx < this->N_bins_full; bin_idx++) {
@@ -290,7 +290,7 @@ void Client::Setup_with_MM_fullpages(std::unordered_map<std::string, std::vector
 
     /* Initialise emm_partial */
     size_t emm_partial_payload_len = 2*data_size + emm_index_len + IV_len;
-    size_t emm_partial_bin_size = std::ceil((1+epsilon) * this->bincap_partial);
+    size_t emm_partial_bin_size = std::ceil((1+delta) * this->bincap_partial);
     this->emm_partial = (byte_t*) malloc(2 * this->N_bins_partial * emm_partial_bin_size * emm_partial_payload_len * sizeof(byte_t));
 
     full_pages.clear();   
@@ -763,7 +763,7 @@ void Client::UpdateMMBinDummy1C(byte_t *token, std::unordered_map<size_t, byte_t
  */
 void Client::ReencryptMMDummy1C(std::unordered_map<size_t, byte_t*> mm_bin, byte_t *hash_table, size_t *seeds) {
     size_t emm_payload_len = page_size;
-    size_t emm_bin_size = std::ceil((1+epsilon) * this->bincap_full);
+    size_t emm_bin_size = std::ceil((1+delta) * this->bincap_full);
 
     CuckooHasing::Build_hash_table_enc_and_fill(mm_bin, emm_payload_len, emm_bin_size, hash_table, 
                                                 page_size - IV_len, seeds, this->enc_key_full);
@@ -796,7 +796,7 @@ size_t Client::RandomGammaGenDummy1C() {
 void Client::UpdateFinalize(byte_t *response, byte_t *hash_table) {
     /* Decrypt the content of the bin */
     size_t emm_partial_payload_len = 2*data_size + emm_index_len + IV_len;
-    size_t emm_partial_bin_size = std::ceil((1+epsilon) * this->bincap_partial);
+    size_t emm_partial_bin_size = std::ceil((1+delta) * this->bincap_partial);
     std::unordered_map<std::string, std::vector<byte_t*>> mm_ctr;
     this->DecryptHashTablePartial(response, emm_partial_payload_len, emm_partial_bin_size, &mm_ctr);
 

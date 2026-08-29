@@ -5,6 +5,7 @@ import pickle
 import math
 import json
 import random
+import argparse
 
 import time
 
@@ -19,14 +20,14 @@ import gzip
 #
 # Precompiled patterns for performance
 #
-time_pattern = re.compile("Date: (?P<data>[A-Z][a-z]+\, \d{1,2} [A-Z][a-z]+ \d{4} \d{2}\:\d{2}\:\d{2} \-\d{4} \([A-Z]{3}\))")
-subject_pattern = re.compile("Subject: (?P<data>.*)")
-sender_pattern = re.compile("From: (?P<data>.*)")
-recipient_pattern = re.compile("To: (?P<data>.*)")
-cc_pattern = re.compile("cc: (?P<data>.*)")
-bcc_pattern = re.compile("bcc: (?P<data>.*)")
-msg_start_pattern = re.compile("\n\n", re.MULTILINE)
-msg_end_pattern = re.compile("\n+.*\n\d+/\d+/\d+ \d+:\d+ [AP]M", re.MULTILINE)
+time_pattern = re.compile(r"Date: (?P<data>[A-Z][a-z]+\, \d{1,2} [A-Z][a-z]+ \d{4} \d{2}\:\d{2}\:\d{2} \-\d{4} \([A-Z]{3}\))")
+subject_pattern = re.compile(r"Subject: (?P<data>.*)")
+sender_pattern = re.compile(r"From: (?P<data>.*)")
+recipient_pattern = re.compile(r"To: (?P<data>.*)")
+cc_pattern = re.compile(r"cc: (?P<data>.*)")
+bcc_pattern = re.compile(r"bcc: (?P<data>.*)")
+msg_start_pattern = re.compile(r"\n\n", re.MULTILINE)
+msg_end_pattern = re.compile(r"\n+.*\n\d+/\d+/\d+ \d+:\d+ [AP]M", re.MULTILINE)
 
 
 '''
@@ -155,12 +156,16 @@ def dump_inverted_index(inverted_index, path_output):
                     
     
 
+parser = argparse.ArgumentParser(description="Parse the Enron email dataset into an inverted index.")
+parser.add_argument('-n', '--n-docs', type=int, default=200000, dest='N_docs',
+                     help="Number of documents to include (default: 200000)")
+args = parser.parse_args()
+
+N_docs = args.N_docs
+
 nltk.download('punkt_tab')
 nltk.download('punkt')
 nltk.download('words')
-
-
-N_docs = 5000
 
 file_input = open('./include_keywords.txt', 'r', encoding='windows-1252')
 text = file_input.read()
@@ -168,7 +173,8 @@ file_input.close()
 include_keywords = set(text.split(','))
 
 
-path_input = '../emails_raw/maildir/'
+#path_input = '../emails_raw/maildir/'
+path_input = '../../duplicated-document-retrieval/emails_raw/maildir'
 path_output = '../input/'
 
 time_start = time.time()

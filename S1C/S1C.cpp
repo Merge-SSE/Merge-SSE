@@ -2,6 +2,7 @@
 
 #include <cmath>
 #include <chrono>
+#include <filesystem>
 #include <fstream>
 #include <sstream>
 #include <iostream>
@@ -32,6 +33,12 @@ int main(int argc, char** argv) {
 
     bool benchmark_full_pages_only = false;
     s1c_args_parser.add_flag("--fp,--fullpage", benchmark_full_pages_only, "Benchmark full pages only");
+
+    s1c_args_parser.add_option("-p,--page-size", page_size, "Page size in bytes");
+
+    s1c_args_parser.add_option("-d,--delta", delta, "Oversampling factor delta used for cuckoo hash table sizing");
+
+    s1c_args_parser.add_flag("-v,--verbose", verbose_setup, "Print detailed setup/cuckoo-hashing progress (adds overhead; use for benchmarking/debugging)");
 
     try {
         s1c_args_parser.parse(argc, argv);
@@ -70,15 +77,15 @@ int BenchmarkFullPages(std::string filename, std::string folder_emm, bool in_mem
     
 
     unsigned int emm_len_payload_len        = S1C_emm_len_XOR_key_len + S1C_emm_len_index_len;
-    size_t emm_len_size                     = std::ceil((1 + epsilon) * client.N_KDP);
+    size_t emm_len_size                     = std::ceil((1 + delta) * client.N_KDP);
     unsigned int emm_full_payload_len       = page_size; 
     size_t page_usable_slots                = (page_size - S1C_emm_full_index_len - 16) / S1C_data_size;
     size_t N_page_max                       = std::ceil((double) client.N_KDP / page_usable_slots);
-    size_t emm_full_size                    = std::ceil((1 + epsilon) *  N_page_max);
+    size_t emm_full_size                    = std::ceil((1 + delta) *  N_page_max);
     unsigned int emm_partial_payload_len    = S1C_data_size + IV_len + S1C_emm_partial_index_len;
 
     server.Store_emm_info(emm_len_payload_len, emm_len_size, emm_full_payload_len, emm_full_size,
-                            emm_partial_payload_len, client.N_bins, std::ceil((1 + epsilon) * client.bincap));
+                            emm_partial_payload_len, client.N_bins, std::ceil((1 + delta) * client.bincap));
                             
     std::cout << "emm_len client: " << 2 *emm_len_payload_len * emm_len_size<< " bytes" << std::endl;
     server.Store_emm_len(client.emm_len);
@@ -86,7 +93,7 @@ int BenchmarkFullPages(std::string filename, std::string folder_emm, bool in_mem
     std::cout << "emm_full client: " << 2 *emm_full_payload_len * emm_full_size<< " bytes" << std::endl;
     server.Store_emm_full(client.emm_full);
 
-    std::cout << "emm_partial client: " << (size_t)(2 *client.N_bins*emm_partial_payload_len*std::ceil((1 + epsilon) * client.bincap))<< " bytes" << std::endl;
+    std::cout << "emm_partial client: " << (size_t)(2 *client.N_bins*emm_partial_payload_len*std::ceil((1 + delta) * client.bincap))<< " bytes" << std::endl;
     server.Store_emm_partial(client.emm_partial);
 
     server.Store_seeds(client.seed_emm_len, client.seed_emm_full, client.seed_emm_partial);
@@ -133,8 +140,9 @@ int BenchmarkFullPages(std::string filename, std::string folder_emm, bool in_mem
     std::ofstream benchmark_file;
 
     std::stringstream filename_stream;
-    filename_stream << "../benchmarks/S1C-opt-p/S1C_benchmark_" << client.N_keywords << "_" << client.N_KDP << "_" << page_size << ".txt"; 
+    filename_stream << "../benchmarks/S1C-opt-p/S1C_benchmark_" << client.N_keywords << "_" << client.N_KDP << "_" << page_size << ".txt";
 
+    std::filesystem::create_directories(std::filesystem::path(filename_stream.str()).parent_path());
     benchmark_file.open(filename_stream.str());
     if (benchmark_file.is_open()) {
         benchmark_file << client.N_keywords << std::endl;
@@ -179,15 +187,15 @@ int BenchmarkQueries(std::string filename, std::string folder_emm, bool in_memor
     
 
     unsigned int emm_len_payload_len        = S1C_emm_len_XOR_key_len + S1C_emm_len_index_len;
-    size_t emm_len_size                     = std::ceil((1 + epsilon) * client.N_KDP);
+    size_t emm_len_size                     = std::ceil((1 + delta) * client.N_KDP);
     unsigned int emm_full_payload_len       = page_size; 
     size_t page_usable_slots                = (page_size - S1C_emm_full_index_len - 16) / S1C_data_size;
     size_t N_page_max                       = std::ceil((double) client.N_KDP / page_usable_slots);
-    size_t emm_full_size                    = std::ceil((1 + epsilon) *  N_page_max);
+    size_t emm_full_size                    = std::ceil((1 + delta) *  N_page_max);
     unsigned int emm_partial_payload_len    = S1C_data_size + IV_len + S1C_emm_partial_index_len;
 
     server.Store_emm_info(emm_len_payload_len, emm_len_size, emm_full_payload_len, emm_full_size,
-                            emm_partial_payload_len, client.N_bins, std::ceil((1 + epsilon) * client.bincap));
+                            emm_partial_payload_len, client.N_bins, std::ceil((1 + delta) * client.bincap));
 
     std::cout << "emm_len client: " << 2 *emm_len_payload_len * emm_len_size<< std::endl;
     server.Store_emm_len(client.emm_len);
@@ -195,7 +203,7 @@ int BenchmarkQueries(std::string filename, std::string folder_emm, bool in_memor
     std::cout << "emm_full client: " << 2 *emm_full_payload_len * emm_full_size<< std::endl;
     server.Store_emm_full(client.emm_full);
 
-    std::cout << "emm_partial client: " << 2 *client.N_bins*emm_partial_payload_len*std::ceil((1 + epsilon) * client.bincap)<< std::endl;
+    std::cout << "emm_partial client: " << 2 *client.N_bins*emm_partial_payload_len*std::ceil((1 + delta) * client.bincap)<< std::endl;
     server.Store_emm_partial(client.emm_partial);
 
     server.Store_seeds(client.seed_emm_len, client.seed_emm_full, client.seed_emm_partial);
@@ -239,8 +247,10 @@ int BenchmarkQueries(std::string filename, std::string folder_emm, bool in_memor
     std::ofstream benchmark_file;
 
     std::stringstream filename_stream;
-    filename_stream << "../benchmarks/S1C-all/S1C_benchmark_" << client.N_keywords << "_" << client.N_KDP << ".txt"; 
+    filename_stream << (in_memory ? "../benchmarks/mem-results/" : "../benchmarks/S1C-all/")
+                     << "S1C_benchmark_" << client.N_keywords << "_" << client.N_KDP << ".txt";
 
+    std::filesystem::create_directories(std::filesystem::path(filename_stream.str()).parent_path());
     benchmark_file.open(filename_stream.str());
     if (benchmark_file.is_open()) {
         benchmark_file << client.N_keywords << std::endl;

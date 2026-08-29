@@ -1,3 +1,4 @@
+import argparse
 import matplotlib.pyplot as plt
 import numpy as np
 import os
@@ -40,7 +41,7 @@ def extract_query_times(filename, grouping=5):
         
     file_input.close()
 
-    print(f"Update: {np.mean(update_times)} ms")
+    print(f"Update: {np.min(update_times):.2f}/{np.max(update_times):.2f}/{np.mean(update_times):.2f} ms")
     print("Throughput:", volume_sum/time_sum*10**9)
 
     return results
@@ -49,6 +50,8 @@ def extract_query_times(filename, grouping=5):
 
 
 def plot_line(benchmarks, max_vol=100000):
+    plt.figure(figsize=(10, 6))
+
     N = max(benchmarks.keys())
     data = benchmarks[N]
     zs = sorted(list(data.keys()))
@@ -64,23 +67,43 @@ def plot_line(benchmarks, max_vol=100000):
         ys += [np.mean(values)]
 
     print(max(xs), max(ys))
-    
+
     plt.plot(xs, ys, label=str(N))
 
 
 
-page_size = 30
+def max_query_volume(filename):
+    file_input = open(filename, 'r')
+    file_input.readline()  # M
+    file_input.readline()  # N
+    file_input.readline()  # setup_time
+    N_updates = int(file_input.readline())
+    for skip in range(N_updates):
+        file_input.readline()
+
+    mx = 0
+    for line in file_input.readlines():
+        mx = max(mx, int(line.split(',')[0]))
+    file_input.close()
+    return mx
+
+
+parser = argparse.ArgumentParser(description="Plot D1C search performance on dense databases.")
+args = parser.parse_args()
+
 benchmarks = {}
 for filename in os.listdir('../benchmarks/D1C-dense/'):
     N = int(filename.split('_')[-2])
     benchmarks[N] = extract_query_times('../benchmarks/D1C-dense/' + filename)
 
-#for ii in range(1, max(benchmarks[max(benchmarks.keys())])//page_size+1):
-#    plt.axvline(x=ii*page_size, linestyle='dashed')
+# Cap the x-axis at the actual max query response volume in the largest-N
+# benchmark file, rather than a fixed ceiling that leaves the plot mostly empty.
+biggest_n, biggest_file = max(
+    (int(fn.split('_')[-2]), fn) for fn in os.listdir('../benchmarks/D1C-dense/')
+)
+max_vol = max_query_volume('../benchmarks/D1C-dense/' + biggest_file)
 
-
-plot_line(benchmarks,max_vol=100000)
-
+plot_line(benchmarks, max_vol=max_vol)
 
 #plt.yscale('log')
 #plt.legend(title="N")
@@ -90,4 +113,7 @@ plt.ylabel('Query Response Time (ms)', fontsize=12)
 plt.xticks(fontsize=12)
 plt.yticks(fontsize=12)
 
-plt.show()
+plt.tight_layout()
+os.makedirs('../benchmarks/plots/', exist_ok=True)
+plt.savefig('../benchmarks/plots/exp-D1C-search-dense.pdf')
+print('Saved plot to ../benchmarks/plots/exp-D1C-search-dense.pdf')
